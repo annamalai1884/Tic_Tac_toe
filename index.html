@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+    }
+
+    /* Outer Background */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #001f3f, #0074D9); /* Outer gradient merging blue and teal */
+      z-index: -2;
+    }
+
+    /* Inner Background Animation */
+    .background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .circle {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(0, 255, 255, 0.1); /* Cyan highlights */
+      animation: moveCircle 12s linear infinite;
+    }
+
+    @keyframes moveCircle {
+      from {
+        transform: translateY(0) scale(0.5);
+        opacity: 0.8;
+      }
+      to {
+        transform: translateY(-120vh) scale(1.2);
+        opacity: 0;
+      }
+    }
+
+    /* Glowing Game Container */
+    .game-container {
+      text-align: center;
+      padding: 30px;
+      background:black; /* Teal-blue gradient */
+      box-shadow: 0 0 30px 15px rgba(0, 200, 255, 0.5);
+      border-radius: 20px;
+      width: 400px;
+      position: relative;
+      animation: glow 2.5s infinite alternate;
+    }
+
+    @keyframes glow {
+      from {
+        box-shadow: 0 0 30px 15px rgba(0, 200, 255, 0.4);
+      }
+      to {
+        box-shadow: 0 0 40px 20px rgba(0, 200, 255, 0.8);
+      }
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 2rem;
+      color: #00FFFF; /* Bright cyan for heading */
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin: 0 auto;
+    }
+
+    .cell {
+      width: 100px;
+      height: 100px;
+      background-color: #004f6b; /* Muted teal */
+      border-radius: 10px;
+      font-size: 2rem;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      color: #fff;
+      user-select: none;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .cell:hover {
+      background-color: #00a6c7; /* Brighter teal on hover */
+      transform: scale(1.1);
+    }
+
+    .cell.taken {
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .message {
+      margin-top: 20px;
+      font-size: 1.2rem;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      background-color: #0074D9; /* Blue button color */
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    button:hover {
+      background-color: #00a6c7; /* Teal button hover effect */
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="background">
+    <!-- Animated circles for background -->
+    <div class="circle" style="width: 120px; height: 120px; top: 100%; left: 25%;"></div>
+    <div class="circle" style="width: 180px; height: 180px; top: 100%; left: 50%;"></div>
+    <div class="circle" style="width: 100px; height: 100px; top: 100%; left: 75%;"></div>
+    <div class="circle" style="width: 140px; height: 140px; top: 100%; left: 35%;"></div>
+  </div>
+
+  <div class="game-container">
+    <h1>Tic Tac Toe</h1>
+    <div class="grid" id="grid">
+      <!-- Cells will be generated dynamically -->
+    </div>
+    <div class="message" id="message">Player X's turn</div>
+    <button onclick="restartGame()">Restart Game</button>
+  </div>
+
+  <script>
+    const grid = document.getElementById('grid');
+    const message = document.getElementById('message');
+
+    let currentPlayer = 'X'; // Tracks the current player
+    let board = Array(9).fill(null); // Tracks the state of the board
+
+    // Winning combinations
+    const winningCombinations = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+      [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+      [0, 4, 8], [2, 4, 6]            // Diagonals
+    ];
+
+    // Create the grid
+    function createGrid() {
+      grid.innerHTML = ''; // Clear the grid
+      board.forEach((_, index) => {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.index = index;
+        cell.addEventListener('click', handleCellClick);
+        grid.appendChild(cell);
+      });
+    }
+
+    // Handle a cell click
+    function handleCellClick(event) {
+      const cell = event.target;
+      const index = cell.dataset.index;
+
+      // Prevent overwriting a cell
+      if (board[index]) return;
+
+      // Mark the cell and update the board
+      board[index] = currentPlayer;
+      cell.textContent = currentPlayer;
+      cell.classList.add('taken');
+
+      // Check for a winner or tie
+      if (checkWinner()) {
+        message.textContent = `Player ${currentPlayer} wins!`;
+        endGame();
+        return;
+      } else if (board.every(cell => cell)) {
+        message.textContent = `It's a tie!`;
+        endGame();
+        return;
+      }
+
+      // Switch players
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      message.textContent = `Player ${currentPlayer}'s turn`;
+    }
+
+    // Check for a winner
+    function checkWinner() {
+      return winningCombinations.some(combination => {
+        return combination.every(index => board[index] === currentPlayer);
+      });
+    }
+
+    // End the game
+    function endGame() {
+      document.querySelectorAll('.cell').forEach(cell => {
+        cell.classList.add('taken'); // Prevent further clicks
+      });
+    }
+
+    // Restart the game
+    function restartGame() {
+      board = Array(9).fill(null); // Reset the board
+      currentPlayer = 'X'; // Reset the current player
+      message.textContent = `Player X's turn`;
+      createGrid(); // Recreate the grid
+    }
+
+    // Initialize the game
+    createGrid();
+  </script>
+</body>
+</html>
